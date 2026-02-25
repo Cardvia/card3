@@ -1,1 +1,372 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+  <title>Cardvia · Digital Card</title>
+  <!-- Tailwind CSS v3 + Inter font -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Font Awesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    * { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+    .glass-card {
+      background: rgba(var(--card-bg-rgb, 0, 0, 0), 0.5);
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      border: 1px solid rgba(var(--border-color-rgb, 255, 255, 255), 0.1);
+    }
+    .fade-in {
+      animation: fadeIn 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    @keyframes fadeIn {
+      0% { opacity: 0; transform: translateY(12px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    .btn-shine {
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-shine::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+      transform: rotate(45deg);
+      transition: all 0.5s ease;
+      opacity: 0;
+    }
+    .btn-shine:hover::after {
+      opacity: 1;
+      left: 100%;
+    }
+    .hover-lift {
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .hover-lift:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3);
+    }
+  </style>
+</head>
+<body class="bg-white text-black min-h-screen flex items-center justify-center p-4">
 
+  <div id="root" class="w-full max-w-md mx-auto fade-in"></div>
+
+  <!-- React + Babel -->
+  <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone@7.22.5/babel.min.js"></script>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    // ====== CONFIGURATION (سهل التعديل) ======
+    const CONFIG = {
+      // ---------- البيانات الشخصية ----------
+      fullName: 'Mehreal Atef',
+      jobTitle: 'product specialist ',
+      arabicTitle: '',
+      bio: '',
+
+      // ---------- الصور ----------
+      profileImage: 'https://ik.imagekit.io/fojb8puzo/tota',
+      profileImageSize: 'w-36 h-36 sm:w-48 sm:h-48',
+      coverImage: 'https://ik.imagekit.io/fojb8puzo/background.png',
+
+      // ---------- أزرار التواصل (الآن 4 أزرار، آخرها Instapay) ----------
+      contacts: [
+        { icon: 'fa-solid fa-phone', label: 'Call', url: 'tel:+201018831654' },
+        { icon: 'fa-brands fa-whatsapp', label: 'WhatsApp', url: 'https://wa.me/+201018831654' },
+        { icon: 'fa-regular fa-envelope', label: 'Email', url: 'mailto:mehraelatef5@gmail.com' },
+        { icon: 'fa-solid fa-coins', label: 'Instapay', url: 'https://ipn.eg/S/mehraelatef/instapay/5rBzLy' },
+      ],
+      
+      // ---------- روابط التواصل الاجتماعي (3 أيقونات) ----------
+      socials: [
+        //{ icon: 'fa-brands fa-linkedin-in', url: 'https://www.linkedin.com/in/mark-atef-796003264/', label: 'LinkedIn' },
+        { icon: 'fa-brands fa-instagram', url: 'https://www.instagram.com/mehrael99/', label: 'Instagram' },
+        { icon: 'fa-brands fa-facebook', url: 'https://www.facebook.com/mohra.atef.121', label: 'Facebook' }
+      ],
+
+      // ---------- رمز QR (صورة) ----------
+      qrCodeImageUrl: 'https://ik.imagekit.io/fojb8puzo/card3%20qr',
+
+      // ---------- الألوان الأساسية (تم تعديلها للأبيض والأزرق المخضر) ----------
+      colors: {
+        // خلفية البطاقة الرئيسية (بصيغة RGB) - الآن أبيض
+        cardBg: '255, 255, 255',        // أبيض
+        // النصوص
+        textPrimary: '#000000',          // أسود
+        textSecondary: '#374151',        // رمادي غامق (gray-700)
+        textMuted: '#6b7280',            // رمادي متوسط (gray-500)
+        // الأزرار العادية (خلفية، نص، حدود)
+        buttonBg: '#0f8fa8',             // أزرق مخضر (teal-500)
+        buttonText: '#ffffff',           // أبيض
+        buttonBorder: '0, 0, 0',         // أسود (لحدود الأزرار)
+        // أيقونات السوشيال ميديا
+        socialIcon: '#0f8fa8',            // نفس الأزرق المخضر
+        // QR code
+        qrBg: '#ffffff',                  // أبيض
+        // التذييل
+        footerText: '#9ca3af',            // رمادي فاتح (gray-400)
+        // الحدود العامة للبطاقة
+        border: '0, 0, 0',                // أسود
+      },
+
+      // ---------- بيانات vCard ----------
+      vCard: {
+        fn: 'Mehreal Atef',
+        org: '',
+        title: '',
+        tel: '+201018831654',
+        email: 'mehraelatef5@gmail.com',
+        url: 'https://card3-wheat.vercel.app/'
+      },
+
+      // ---------- رقم واتساب لطلب البطاقة ----------
+      whatsappRequestNumber: '+201090225298',
+    };
+
+    // تتبع النقرات (Google Analytics)
+    const trackClick = (label) => {
+      if (typeof gtag !== 'undefined') {
+        gtag('event', 'button_click', { event_category: 'engagement', event_label: label });
+      }
+    };
+
+    // تحميل vCard
+    const downloadVcard = () => {
+      trackClick('download_vcard');
+      const vcard = `BEGIN:VCARD
+VERSION:3.0
+FN:${CONFIG.vCard.fn || CONFIG.fullName}
+ORG:${CONFIG.vCard.org}
+TITLE:${CONFIG.vCard.title}
+TEL:${CONFIG.vCard.tel}
+EMAIL:${CONFIG.vCard.email}
+URL:${CONFIG.vCard.url}
+END:VCARD`;
+      const blob = new Blob([vcard], { type: 'text/vcard' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${CONFIG.fullName.replace(/\s+/g, '_')}.vcf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    };
+
+    // توليد QR وتحميله
+    const downloadQR = () => {
+      trackClick('download_qr');
+      
+      if (CONFIG.qrCodeImageUrl) {
+        const a = document.createElement('a');
+        a.href = CONFIG.qrCodeImageUrl;
+        a.download = `${CONFIG.fullName.replace(/\s+/g, '_')}_QR.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } else {
+        const canvas = document.createElement('canvas');
+        canvas.width = 200;
+        canvas.height = 200;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, 200, 200);
+        ctx.fillStyle = '#000000';
+        for (let i = 0; i < 8; i++) {
+          for (let j = 0; j < 8; j++) {
+            if ((i + j) % 2 === 0) {
+              ctx.fillRect(i * 25, j * 25, 20, 20);
+            }
+          }
+        }
+        ctx.fillRect(10, 10, 40, 40);
+        ctx.fillRect(150, 10, 40, 40);
+        ctx.fillRect(10, 150, 40, 40);
+        
+        canvas.toBlob((blob) => {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${CONFIG.fullName.replace(/\s+/g, '_')}_QR.png`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }, 'image/png');
+      }
+    };
+
+    // مكون الكارد
+    function DigitalBusinessCard() {
+      const colors = CONFIG.colors;
+
+      return (
+        // تعيين متغيرات CSS للتخصيص
+        <div 
+          className="glass-card rounded-3xl shadow-2xl overflow-hidden border transition-all duration-500"
+          style={{
+            // خلفية البطاقة أصبحت بيضاء شفافة قليلاً
+            backgroundColor: `rgba(${colors.cardBg}, 0.8)`,
+            borderColor: `rgba(${colors.border}, 0.1)`,
+          }}
+        >
+          {/* الغلاف */}
+          <div className="relative h-64 sm:h-80 mt-0 bg-cover bg-center" style={{ backgroundImage: `url('${CONFIG.coverImage}')` }}>
+            {/* تمت إزالة الطبقة السوداء الشفافة (bg-gradient-to-t) التي كانت تسبب الظل على الخلفية */}
+            {/* الصورة الشخصية */}
+            <div className="absolute -bottom-12 left-1/2 transform -translate-x-1/2">
+              <div className={`${CONFIG.profileImageSize} rounded-full border-4 shadow-2xl overflow-hidden`} 
+                   style={{ borderColor: `rgba(${colors.border}, 0.2)` }}>
+                <img 
+                  src={CONFIG.profileImage} 
+                  alt={CONFIG.fullName}
+                  className="w-full h-full object-cover"
+                  onError={(e) => e.target.src = 'https://via.placeholder.com/400?text=Profile'}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* المحتوى الرئيسي */}
+          <div className="pt-16 sm:pt-20 pb-6 px-5 sm:px-6 space-y-6">
+            {/* الاسم + المسمى */}
+            <div className="text-center space-y-1">
+              <h1 className="text-3xl sm:text-4xl font-extrabold" style={{ color: colors.textPrimary }}>
+                {CONFIG.fullName}
+              </h1>
+              <h2 className="text-lg sm:text-xl font-medium" style={{ color: colors.textSecondary }}>
+                {CONFIG.jobTitle}
+              </h2>
+              <p className="text-base sm:text-lg font-medium" dir="rtl" style={{ color: colors.textMuted }}>
+                {CONFIG.arabicTitle}
+              </p>
+            </div>
+
+            {/* السيرة المختصرة */}
+            {CONFIG.bio && (
+              <p className="text-center text-[15px] leading-relaxed px-2" style={{ color: colors.textSecondary }}>
+                {CONFIG.bio}
+              </p>
+            )}
+
+            {/* أزرار التواصل */}
+            <div className="grid grid-cols-1 gap-3">
+              {CONFIG.contacts.map((btn, idx) => (
+                <a
+                  key={idx}
+                  href={btn.url}
+                  target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-4 px-5 py-4 rounded-xl font-medium backdrop-blur-sm transition-all hover:scale-[1.02] active:scale-[0.98] btn-shine"
+                  style={{
+                    backgroundColor: `rgba(${colors.border}, 0.03)`,
+                    border: `1px solid rgba(${colors.border}, 0.1)`,
+                    color: colors.textPrimary,
+                  }}
+                  onClick={() => trackClick(`contact_${btn.label}`)}
+                  aria-label={btn.label}
+                >
+                  <i className={`${btn.icon} text-2xl w-8`} style={{ color: colors.buttonBg }}></i>
+                  <span className="flex-1 text-left">{btn.label}</span>
+                  <i className="fa-solid fa-chevron-left text-sm opacity-50"></i>
+                </a>
+              ))}
+            </div>
+
+            {/* أيقونات التواصل الاجتماعي */}
+            <div className="flex justify-center items-center gap-6 pt-2">
+              {CONFIG.socials.map((social, idx) => (
+                <a
+                  key={idx}
+                  href={social.url}
+                  target="_blank" rel="noopener noreferrer"
+                  className="text-3xl hover:scale-110 transition-transform p-2"
+                  style={{ color: colors.socialIcon }}
+                  onClick={() => trackClick(`social_${social.label}`)}
+                  aria-label={social.label}
+                >
+                  <i className={social.icon}></i>
+                </a>
+              ))}
+            </div>
+
+            {/* رمز QR */}
+            {CONFIG.qrCodeImageUrl && (
+              <div className="flex justify-center pt-2">
+                <div className="relative group cursor-pointer" onClick={downloadQR}>
+                  <div className="w-32 h-32 rounded-2xl p-2 shadow-xl hover:scale-105 transition-transform duration-300"
+                       style={{ backgroundColor: colors.qrBg }}>
+                    <img 
+                      src={CONFIG.qrCodeImageUrl} 
+                      alt="QR Code"
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                  <p className="text-center text-xs mt-2 group-hover:opacity-80 transition-colors"
+                     style={{ color: colors.textMuted }}>
+                    اضغط لتحميل QR
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* أزرار التحميل */}
+            <div className="flex flex-col items-center gap-6 pt-4">
+              {/* vCard */}
+              <div className="w-full space-y-3">
+                <button
+                  onClick={downloadVcard}
+                  className="w-full flex items-center justify-center gap-3 px-5 py-4 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all btn-shine"
+                  style={{
+                    background: colors.buttonBg,
+                    color: colors.buttonText,
+                  }}
+                  aria-label="Download vCard"
+                >
+                  <i className="fa-solid fa-address-card text-xl"></i>
+                  <span>Download vCard</span>
+                </button>
+              </div>
+
+              {/* زر طلب البطاقة عبر واتساب */}
+              <div className="w-full space-y-3">
+                <a
+                  href={`https://wa.me/${CONFIG.whatsappRequestNumber}`}
+                  target="_blank" rel="noopener noreferrer"
+                  onClick={() => trackClick('request_card_whatsapp')}
+                  className="w-full flex items-center justify-center gap-3 px-5 py-4 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all btn-shine"
+                  style={{
+                    background: colors.buttonBg,
+                    color: colors.buttonText,
+                  }}
+                >
+                  <i className="fa-regular fa-id-card text-xl"></i>
+                  <span>Request Your Card</span>
+                </a>
+              </div>
+            </div>
+
+            {/* التذييل */}
+            <div className="pt-6 text-center">
+              <span className="text-[0.7rem] font-medium tracking-[0.2em]" style={{ color: colors.footerText }}>
+                POWERED BY CARDVIA
+              </span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<DigitalBusinessCard />);
+  </script>
+</body>
+</html>
